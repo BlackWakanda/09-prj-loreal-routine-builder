@@ -9,6 +9,8 @@ const chatForm = document.getElementById("chatForm");
 const chatWindow = document.getElementById("chatWindow");
 
 const WORKER_ENDPOINT =
+  window.APP_CONFIG?.OPENAI_WORKER_URL ||
+  window.APP_CONFIG?.WORKER_URL ||
   window.OPENAI_WORKER_URL ||
   window.WORKER_URL ||
   window.secrets?.OPENAI_WORKER_URL ||
