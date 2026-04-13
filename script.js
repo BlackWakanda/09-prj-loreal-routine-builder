@@ -17,6 +17,8 @@ const WORKER_ENDPOINT =
 const OPENAI_MODEL = "gpt-4o";
 const SELECTED_PRODUCTS_STORAGE_KEY = "loreal-selected-product-ids";
 
+const workerURL = "https://loreal.tukovc37.workers.dev/";
+
 /* Keep the product data and selected products in memory. */
 let allProducts = [];
 let selectedProducts = [];
