@@ -25,18 +25,39 @@
 
       <!-- Category Filter -->
       <div class="search-section">
-        <select id="categoryFilter">
-          <option value="" disabled selected>Choose a Category</option>
-          <option value="cleanser">Cleansers</option>
-          <option value="moisturizer">Moisturizers & Treatments</option>
-          <option value="haircare">Haircare</option>
-          <option value="makeup">Makeup</option>
-          <option value="hair color">Hair Color</option>
-          <option value="hair styling">Hair Styling</option>
-          <option value="men's grooming">Men's Grooming</option>
-          <option value="suncare">Suncare</option>
-          <option value="fragrance">Fragrance</option>
-        </select>
+        <div class="filter-grid">
+          <label for="categoryFilter" class="visually-hidden">Category</label>
+          <select id="categoryFilter">
+            <option value="" disabled selected>Choose a Category</option>
+            <option value="cleanser">Cleansers</option>
+            <option value="moisturizer">Moisturizers & Treatments</option>
+            <option value="haircare">Haircare</option>
+            <option value="makeup">Makeup</option>
+            <option value="hair color">Hair Color</option>
+            <option value="hair styling">Hair Styling</option>
+            <option value="men's grooming">Men's Grooming</option>
+            <option value="suncare">Suncare</option>
+            <option value="fragrance">Fragrance</option>
+          </select>
+
+          <label for="productSearch" class="visually-hidden"
+            >Search products</label
+          >
+          <input
+            id="productSearch"
+            type="search"
+            placeholder="Search products by name, brand, or keyword"
+            autocomplete="off"
+          />
+
+          <label for="directionToggle" class="visually-hidden"
+            >Layout direction</label
+          >
+          <select id="directionToggle" aria-label="Layout direction">
+            <option value="ltr" selected>LTR</option>
+            <option value="rtl">RTL</option>
+          </select>
+        </div>
       </div>
 
       <!-- Products Grid -->

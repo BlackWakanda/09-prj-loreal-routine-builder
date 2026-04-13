@@ -1,5 +1,7 @@
 /* Get references to DOM elements */
 const categoryFilter = document.getElementById("categoryFilter");
+const productSearch = document.getElementById("productSearch");
+const directionToggle = document.getElementById("directionToggle");
 const productsContainer = document.getElementById("productsContainer");
 const selectedProductsList = document.getElementById("selectedProductsList");
 const generateRoutineButton = document.getElementById("generateRoutine");
@@ -19,14 +21,13 @@ const WORKER_ENDPOINT =
 const OPENAI_MODEL = "gpt-4o";
 const SELECTED_PRODUCTS_STORAGE_KEY = "loreal-selected-product-ids";
 
-const workerURL = "https://loreal.tukovc37.workers.dev/";
-
 /* Keep the product data and selected products in memory. */
 let allProducts = [];
 let selectedProducts = [];
 let expandedDescriptionIds = new Set();
 let conversationMessages = [];
 let routineReady = false;
+let productSearchQuery = "";
 
 const systemPrompt =
   "You are a helpful L'Oréal routine advisor. Stay focused on the current routine and on beauty-related topics like skincare, haircare, makeup, fragrance, and related routines. Use the selected products and the prior conversation as context. Keep responses clear, practical, and friendly. If the user asks about something outside beauty or the current routine, politely redirect them back to the routine or a related beauty topic.";
@@ -50,16 +51,6 @@ chatWindow.innerHTML = `
   </div>
 `;
 conversationMessages = [{ role: "system", content: systemPrompt }];
-
-function getOpenAIKey() {
-  return (
-    window.OPENAI_API_KEY ||
-    window.OPENAI_KEY ||
-    window.secrets?.OPENAI_API_KEY ||
-    window.secrets?.OPENAI_KEY ||
-    ""
-  );
-}
 
 function saveSelectedProductIds() {
   const selectedProductIds = selectedProducts.map((product) => product.id);
@@ -90,6 +81,17 @@ function escapeHtml(text) {
   return temporaryElement.innerHTML;
 }
 
+function linkifyText(escapedText) {
+  return escapedText.replace(
+    /(https?:\/\/[^\s<]+)/g,
+    '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>',
+  );
+}
+
+function formatAssistantMessageContent(content) {
+  return linkifyText(escapeHtml(content));
+}
+
 function renderChatWindow() {
   const visibleMessages = conversationMessages.filter(
     (message) => message.role !== "system",
@@ -111,7 +113,11 @@ function renderChatWindow() {
           <div class="chat-message-label">
             ${message.role === "user" ? "You" : "L'Oréal Advisor"}
           </div>
-          <div class="chat-message-content">${escapeHtml(message.content)}</div>
+          <div class="chat-message-content">${
+            message.role === "assistant"
+              ? formatAssistantMessageContent(message.content)
+              : escapeHtml(message.content)
+          }</div>
         </div>
       `,
     )
@@ -143,9 +149,7 @@ function getSelectedProductPayload() {
 
 async function fetchOpenAIResponse(messages) {
   if (!WORKER_ENDPOINT) {
-    throw new Error(
-      "Missing Cloudflare Worker endpoint. Add it to secrets.js.",
-    );
+    throw new Error("Missing Cloudflare Worker endpoint. Add it to config.js.");
   }
 
   const response = await fetch(WORKER_ENDPOINT, {
@@ -178,7 +182,32 @@ async function fetchOpenAIResponse(messages) {
     throw new Error("The API did not return a response.");
   }
 
-  return reply.trim();
+  const citations = Array.isArray(data?.citations) ? data.citations : [];
+
+  if (citations.length === 0) {
+    return reply.trim();
+  }
+
+  const citationText = citations
+    .map(
+      (citation, index) => `${index + 1}. ${citation.title} - ${citation.url}`,
+    )
+    .join("\n");
+
+  return `${reply.trim()}\n\nSources:\n${citationText}`;
+}
+
+function normalizeText(value) {
+  return value.toLowerCase().trim();
+}
+
+function setLayoutDirection(direction) {
+  const safeDirection = direction === "rtl" ? "rtl" : "ltr";
+  document.documentElement.setAttribute("dir", safeDirection);
+  directionToggle.value = safeDirection;
+
+  // Keep the chat placeholder natural in each writing direction.
+  userInput.style.direction = safeDirection;
 }
 
 /* Load product data from JSON file. */
@@ -281,6 +310,7 @@ function displayProducts(products) {
 /* Re-render the product grid using the currently selected category. */
 function renderProducts() {
   const selectedCategory = categoryFilter.value;
+  const normalizedQuery = normalizeText(productSearchQuery);
 
   if (!selectedCategory) {
     productsContainer.innerHTML = `
@@ -291,9 +321,32 @@ function renderProducts() {
     return;
   }
 
-  const filteredProducts = allProducts.filter(
-    (product) => product.category === selectedCategory,
-  );
+  const filteredProducts = allProducts.filter((product) => {
+    const matchesCategory = product.category === selectedCategory;
+
+    if (!matchesCategory) {
+      return false;
+    }
+
+    if (!normalizedQuery) {
+      return true;
+    }
+
+    const searchableText = normalizeText(
+      `${product.name} ${product.brand} ${product.category} ${product.description}`,
+    );
+
+    return searchableText.includes(normalizedQuery);
+  });
+
+  if (filteredProducts.length === 0 && normalizedQuery) {
+    productsContainer.innerHTML = `
+      <div class="placeholder-message">
+        No products matched "${escapeHtml(productSearchQuery)}" in this category.
+      </div>
+    `;
+    return;
+  }
 
   displayProducts(filteredProducts);
 }
@@ -473,6 +526,15 @@ categoryFilter.addEventListener("change", () => {
   renderProducts();
 });
 
+productSearch.addEventListener("input", () => {
+  productSearchQuery = productSearch.value;
+  renderProducts();
+});
+
+directionToggle.addEventListener("change", () => {
+  setLayoutDirection(directionToggle.value);
+});
+
 generateRoutineButton.addEventListener("click", () => {
   generateRoutine();
 });
@@ -490,6 +552,9 @@ async function initializeProducts() {
 
   renderProducts();
   displaySelectedProducts();
+
+  // Default page direction is LTR; users can switch to RTL from the filter bar.
+  setLayoutDirection("ltr");
 }
 
 initializeProducts();

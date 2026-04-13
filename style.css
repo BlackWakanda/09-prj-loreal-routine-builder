@@ -56,6 +56,13 @@ body {
   display: flex;
 }
 
+.filter-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1.2fr 1.8fr 0.6fr;
+  gap: 12px;
+}
+
 .search-section select {
   width: 100%;
   padding: 16px 18px;
@@ -68,7 +75,24 @@ body {
   box-shadow: 0 10px 25px rgba(35, 31, 32, 0.06);
 }
 
+.search-section input {
+  width: 100%;
+  padding: 16px 18px;
+  font-size: 17px;
+  border: 2px solid rgba(35, 31, 32, 0.18);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
+  box-shadow: 0 10px 25px rgba(35, 31, 32, 0.06);
+}
+
 .search-section select:focus {
+  outline: none;
+  border-color: #ff003b;
+  box-shadow: 0 0 0 4px rgba(255, 0, 59, 0.12);
+}
+
+.search-section input:focus {
   outline: none;
   border-color: #ff003b;
   box-shadow: 0 0 0 4px rgba(255, 0, 59, 0.12);
@@ -143,6 +167,12 @@ body {
   line-height: 1.6;
   white-space: pre-wrap;
   color: #231f20;
+}
+
+.chat-message-content a {
+  color: #9c1535;
+  text-decoration: underline;
+  word-break: break-word;
 }
 
 /* placeholder message */
@@ -545,7 +575,52 @@ body {
   box-shadow: none;
 }
 
+/* RTL support for chat, product cards, and selected product layout. */
+html[dir="rtl"] .site-header,
+html[dir="rtl"] .chatbox,
+html[dir="rtl"] .selected-products {
+  text-align: right;
+}
+
+html[dir="rtl"] .product-card {
+  text-align: right;
+  flex-direction: row-reverse;
+}
+
+html[dir="rtl"] .product-card-topline {
+  flex-direction: row-reverse;
+}
+
+html[dir="rtl"] .product-card.is-selected::after {
+  right: auto;
+  left: 14px;
+}
+
+html[dir="rtl"] .product-description {
+  border-left: none;
+  border-right: 4px solid #e3a535;
+}
+
+html[dir="rtl"] .selected-product-item {
+  flex-direction: row-reverse;
+  text-align: right;
+}
+
+html[dir="rtl"] .chat-message.user {
+  margin-left: 0;
+  margin-right: auto;
+}
+
+html[dir="rtl"] .chat-message.assistant {
+  margin-right: 0;
+  margin-left: auto;
+}
+
 @media (max-width: 720px) {
+  .filter-grid {
+    grid-template-columns: 1fr;
+  }
+
   .page-wrapper {
     width: 92%;
   }
@@ -557,6 +632,10 @@ body {
   .selected-product-item {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  html[dir="rtl"] .selected-product-item {
+    align-items: flex-end;
   }
 
   .chat-message {

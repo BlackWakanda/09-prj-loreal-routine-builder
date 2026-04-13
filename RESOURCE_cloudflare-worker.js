@@ -14,14 +14,17 @@ export default {
       return new Response(null, { headers: corsHeaders });
     }
 
-    const apiKey = env.OPENAI_API_KEY; // Make sure to name your secret OPENAI_API_KEY in the Cloudflare Workers dashboard
-    const apiUrl = "https://api.openai.com/v1/chat/completions";
+    const apiKey = env.OPENAI_API_KEY; // Store this in Worker Secrets, never in GitHub Pages files.
+    const apiUrl = "https://api.openai.com/v1/responses";
     const userInput = await request.json();
 
+    // Use a web-search-capable model so routine advice can include current information.
     const requestBody = {
-      model: "gpt-4o",
-      messages: userInput.messages,
-      max_completion_tokens: 300,
+      model: "gpt-4o-search-preview",
+      input: userInput.messages,
+      tools: [{ type: "web_search_preview" }],
+      temperature: userInput.temperature ?? 0.7,
+      max_output_tokens: 600,
     };
 
     const response = await fetch(apiUrl, {
@@ -35,6 +38,50 @@ export default {
 
     const data = await response.json();
 
-    return new Response(JSON.stringify(data), { headers: corsHeaders });
+    if (!response.ok) {
+      return new Response(JSON.stringify(data), {
+        status: response.status,
+        headers: corsHeaders,
+      });
+    }
+
+    const outputText = data.output_text || "";
+    const citations = [];
+
+    // Pull citation links from web search annotations if available.
+    if (Array.isArray(data.output)) {
+      for (const outputItem of data.output) {
+        if (!Array.isArray(outputItem.content)) {
+          continue;
+        }
+
+        for (const contentItem of outputItem.content) {
+          if (!Array.isArray(contentItem.annotations)) {
+            continue;
+          }
+
+          for (const annotation of contentItem.annotations) {
+            const url = annotation?.url;
+
+            if (!url) {
+              continue;
+            }
+
+            citations.push({
+              title: annotation?.title || "Source",
+              url,
+            });
+          }
+        }
+      }
+    }
+
+    return new Response(
+      JSON.stringify({
+        reply: outputText,
+        citations,
+      }),
+      { headers: corsHeaders },
+    );
   },
 };
